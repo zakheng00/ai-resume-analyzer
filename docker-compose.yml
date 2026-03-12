@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ai-resume-db
+    environment:
+      POSTGRES_USER: airesume
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: ai_resume_analyzer
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airesume"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Python PDF Parser Service
+  parser:
+    build:
+      context: ./parser-python
+      dockerfile: Dockerfile
+    container_name: ai-resume-parser
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    depends_on:
+      - postgres
+    volumes:
+      - ./parser-python:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Node.js Backend Service
+  backend:
+    build:
+      context: ./backend-node
+      dockerfile: Dockerfile
+    container_name: ai-resume-backend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://airesume:password123@postgres:5432/ai_resume_analyzer
+      - PYTHON_SERVICE_URL=http://parser:8000
+      - DIFY_API_KEY=${DIFY_API_KEY:-your_key_here}
+      - DIFY_API_URL=https://api.dify.ai/v1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      parser:
+        condition: service_healthy
+    volumes:
+      - ./backend-node:/app
+    command: npm run dev
+
+  # React Frontend Service
+  frontend:
+    build:
+      context: ./frontend-react
+      dockerfile: Dockerfile
+    container_name: ai-resume-frontend
+    ports:
+      - "3001:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:3000/api
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend-react:/app
+    command: npm start
+
+volumes:
+  postgres_data:
+
+networks:
+  default:
+    name: ai-resume-network

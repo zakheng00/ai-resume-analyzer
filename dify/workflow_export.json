@@ -1,0 +1,37 @@
+{
+  "version": "0.1",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start",
+      "data": {
+        "title": "Start Resume Analysis"
+      }
+    },
+    {
+      "id": "analysis",
+      "type": "process",
+      "data": {
+        "title": "AI Analysis Node",
+        "description": "TODO: Configure your Dify workflow here"
+      }
+    },
+    {
+      "id": "end",
+      "type": "end",
+      "data": {
+        "title": "Return Results"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "source": "start",
+      "target": "analysis"
+    },
+    {
+      "source": "analysis",
+      "target": "end"
+    }
+  ]
+}
